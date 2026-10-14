@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import {
   getVocabSrsMap,
   saveVocabSrsMap,
@@ -11,6 +11,12 @@ import {
   saveAppSettings,
   calculateNextSrs
 } from '../utils/srsEngine';
+import {
+  pushProgressToSupabase,
+  pullProgressFromSupabase,
+  testSupabaseConnection,
+  SUPABASE_SCHEMA_SQL
+} from '../utils/supabaseSync';
 
 const DataContext = createContext(null);
 
@@ -25,6 +31,15 @@ export function DataProvider({ children }) {
   const [grammarSrsMap, setGrammarSrsMapState] = useState(getGrammarSrsMap());
   const [stats, setStatsState] = useState(getStudyStats());
   const [settings, setSettingsState] = useState(getAppSettings());
+
+  // Cloud Sync state
+  const [cloudSyncStatus, setCloudSyncStatus] = useState('idle'); // 'idle' | 'syncing' | 'synced' | 'error'
+  const [cloudSyncError, setCloudSyncError] = useState(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState(() => {
+    return localStorage.getItem('nihongo_last_cloud_sync') || null;
+  });
+  const autoSyncTimerRef = useRef(null);
+
 
   // UI Drawer & Shelf state
   const [rightShelfOpen, setRightShelfOpen] = useState(false);
@@ -221,6 +236,89 @@ export function DataProvider({ children }) {
     setStatsState(getStudyStats());
   }, []);
 
+  // Push to Supabase Cloud
+  const triggerCloudPush = useCallback(async () => {
+    setCloudSyncStatus('syncing');
+    setCloudSyncError(null);
+    const res = await pushProgressToSupabase({
+      vocabSrsMap,
+      grammarSrsMap,
+      stats,
+      settings
+    });
+    if (res.success) {
+      setCloudSyncStatus('synced');
+      const nowIso = new Date().toISOString();
+      setLastSyncedAt(nowIso);
+      localStorage.setItem('nihongo_last_cloud_sync', nowIso);
+      setTimeout(() => setCloudSyncStatus('idle'), 3000);
+      return { success: true };
+    } else {
+      setCloudSyncStatus('error');
+      setCloudSyncError(res.error);
+      return { success: false, error: res.error };
+    }
+  }, [vocabSrsMap, grammarSrsMap, stats, settings]);
+
+  // Pull from Supabase Cloud
+  const triggerCloudPull = useCallback(async () => {
+    setCloudSyncStatus('syncing');
+    setCloudSyncError(null);
+    const res = await pullProgressFromSupabase();
+    if (res.success && res.payload) {
+      const p = res.payload;
+      if (p.vocabSrs) {
+        setVocabSrsMapState(p.vocabSrs);
+        saveVocabSrsMap(p.vocabSrs);
+      }
+      if (p.grammarSrs) {
+        setGrammarSrsMapState(p.grammarSrs);
+        saveGrammarSrsMap(p.grammarSrs);
+      }
+      if (p.stats) {
+        setStatsState(p.stats);
+        localStorage.setItem('nihongo_study_stats_v1', JSON.stringify(p.stats));
+      }
+      if (p.settings) {
+        setSettingsState(p.settings);
+        saveAppSettings(p.settings);
+      }
+      setCloudSyncStatus('synced');
+      const syncTime = res.updatedAt || new Date().toISOString();
+      setLastSyncedAt(syncTime);
+      localStorage.setItem('nihongo_last_cloud_sync', syncTime);
+      setTimeout(() => setCloudSyncStatus('idle'), 3000);
+      return { success: true };
+    } else {
+      setCloudSyncStatus('error');
+      setCloudSyncError(res.error || 'Failed to pull cloud progress');
+      return { success: false, error: res.error };
+    }
+  }, []);
+
+  // Debounced auto-push to Supabase on state change (every 5 seconds of stillness)
+  useEffect(() => {
+    if (autoSyncTimerRef.current) clearTimeout(autoSyncTimerRef.current);
+    autoSyncTimerRef.current = setTimeout(() => {
+      const hasReviews = Object.values(vocabSrsMap).some(s => s && s.timesSeen > 0);
+      if (hasReviews) {
+        pushProgressToSupabase({ vocabSrsMap, grammarSrsMap, stats, settings })
+          .then(res => {
+            if (res.success) {
+              const nowIso = new Date().toISOString();
+              setLastSyncedAt(nowIso);
+              localStorage.setItem('nihongo_last_cloud_sync', nowIso);
+            }
+          })
+          .catch(() => {});
+      }
+    }, 5000);
+
+    return () => {
+      if (autoSyncTimerRef.current) clearTimeout(autoSyncTimerRef.current);
+    };
+  }, [vocabSrsMap, grammarSrsMap, stats, settings]);
+
   // Quick stats computed
   const learnedVocabCount = Object.values(vocabSrsMap).filter(s => s && s.learningState !== 'NEW').length;
   const masteredVocabCount = Object.values(vocabSrsMap).filter(s => s && s.learningState === 'MASTERED').length;
@@ -253,7 +351,14 @@ export function DataProvider({ children }) {
         rightShelfOpen,
         setRightShelfOpen,
         sandwichDrawerOpen,
-        setSandwichDrawerOpen
+        setSandwichDrawerOpen,
+        // Supabase Cloud Sync
+        cloudSyncStatus,
+        cloudSyncError,
+        lastSyncedAt,
+        triggerCloudPush,
+        triggerCloudPull,
+        testSupabaseConnection
       }}
     >
       {children}

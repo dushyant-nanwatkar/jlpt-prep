@@ -10,10 +10,16 @@ import {
   Sparkles,
   Eye,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Cloud,
+  RefreshCw,
+  Database,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { speakJapanese } from '../../utils/tts';
+import { SUPABASE_SCHEMA_SQL } from '../../utils/supabaseSync';
 
 export default function SettingsScreen() {
   const { 
@@ -22,12 +28,23 @@ export default function SettingsScreen() {
     exportProgressJson, 
     importProgressJson, 
     resetAllProgress,
-    metadata
+    metadata,
+    cloudSyncStatus,
+    cloudSyncError,
+    lastSyncedAt,
+    triggerCloudPush,
+    triggerCloudPull,
+    testSupabaseConnection
   } = useData();
 
   const [confirmReset, setConfirmReset] = useState(false);
   const [importStatus, setImportStatus] = useState(null);
+  const [cloudMsg, setCloudMsg] = useState(null);
+  const [showSqlSchema, setShowSqlSchema] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
   const fileInputRef = useRef(null);
+
 
   const handleSpeechRateChange = (e) => {
     updateSettings({ speechRate: parseFloat(e.target.value) });
@@ -153,6 +170,135 @@ export default function SettingsScreen() {
             <option value={50}>50 words</option>
           </select>
         </div>
+      </div>
+
+      {/* Supabase 24x7 Cloud Sync Card */}
+      <div className="acrylic-card rounded-3xl p-6 border border-[rgba(0,188,212,0.2)] bg-gradient-to-br from-[#0c1829]/60 to-[#0a111e]/90 space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-bold text-white">
+            <Cloud size={20} className="text-[#00BCD4]" />
+            <span>Supabase Cloud Sync (Web & Android 24/7)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {cloudSyncStatus === 'syncing' ? (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                <RefreshCw size={12} className="animate-spin" /> Syncing...
+              </span>
+            ) : cloudSyncStatus === 'error' ? (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-500/20 text-red-300 border border-red-500/30">
+                <AlertTriangle size={12} /> Sync Error
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Cloud Active
+              </span>
+            )}
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-300 leading-relaxed">
+          Your flashcard intervals, known counts, and streaks automatically push to your Supabase PostgreSQL cloud in the background. Use this to maintain live 2-way synchronization with your Android app.
+        </p>
+
+        {lastSyncedAt && (
+          <div className="text-[11px] text-gray-400 flex items-center gap-1.5 font-mono">
+            <CheckCircle2 size={13} className="text-emerald-400" />
+            <span>Last synchronized: {new Date(lastSyncedAt).toLocaleString()}</span>
+          </div>
+        )}
+
+        {cloudSyncError && (
+          <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-xs text-red-200 space-y-1">
+            <div className="font-bold flex items-center gap-1.5">
+              <AlertTriangle size={14} /> Cloud Sync Notice
+            </div>
+            <div className="text-[11px] opacity-90">{cloudSyncError}</div>
+          </div>
+        )}
+
+        {cloudMsg && (
+          <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-xs text-cyan-200">
+            {cloudMsg}
+          </div>
+        )}
+
+        {/* Sync Actions */}
+        <div className="flex flex-wrap gap-2.5 pt-1">
+          <button
+            onClick={async () => {
+              setCloudMsg(null);
+              const res = await triggerCloudPush();
+              if (res.success) setCloudMsg('Successfully pushed local progress to Supabase Cloud!');
+            }}
+            disabled={cloudSyncStatus === 'syncing'}
+            className="btn-m3 btn-primary py-2.5 px-4 text-xs font-semibold flex items-center gap-2"
+          >
+            <Cloud size={15} /> Push to Cloud
+          </button>
+
+          <button
+            onClick={async () => {
+              setCloudMsg(null);
+              const res = await triggerCloudPull();
+              if (res.success) setCloudMsg('Successfully updated local progress from Supabase Cloud!');
+            }}
+            disabled={cloudSyncStatus === 'syncing'}
+            className="btn-m3 btn-glass py-2.5 px-4 text-xs font-semibold flex items-center gap-2"
+          >
+            <RefreshCw size={14} /> Pull from Cloud
+          </button>
+
+          <button
+            onClick={async () => {
+              setTestingConnection(true);
+              setCloudMsg(null);
+              const res = await testSupabaseConnection();
+              setTestingConnection(false);
+              if (res.connected && res.tablesExist) {
+                setCloudMsg('Connected! Database tables are ready.');
+              } else if (res.connected && !res.tablesExist) {
+                setCloudMsg('Connected to Supabase, but SQL tables are not yet created. Click "View SQL Setup" below.');
+                setShowSqlSchema(true);
+              } else {
+                setCloudMsg('Connection check failed: ' + res.error);
+              }
+            }}
+            disabled={testingConnection}
+            className="btn-m3 btn-glass py-2.5 px-3.5 text-xs font-medium flex items-center gap-1.5 text-gray-300"
+          >
+            <Database size={14} /> {testingConnection ? 'Testing...' : 'Test Connection'}
+          </button>
+
+          <button
+            onClick={() => setShowSqlSchema(!showSqlSchema)}
+            className="text-xs text-[var(--md-sys-color-primary)] hover:underline ml-auto flex items-center gap-1 px-2 py-2"
+          >
+            {showSqlSchema ? 'Hide SQL Script' : 'View Supabase SQL Setup'}
+          </button>
+        </div>
+
+        {/* Collapsible SQL Script for Supabase SQL Editor */}
+        {showSqlSchema && (
+          <div className="mt-3 p-4 rounded-2xl bg-black/60 border border-[rgba(255,255,255,0.08)] space-y-3">
+            <div className="flex items-center justify-between text-xs text-gray-300 font-semibold">
+              <span>Run this once in Supabase SQL Editor:</span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(SUPABASE_SCHEMA_SQL);
+                  setCopiedSql(true);
+                  setTimeout(() => setCopiedSql(false), 2500);
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-mono transition-colors"
+              >
+                {copiedSql ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                {copiedSql ? 'Copied SQL!' : 'Copy SQL'}
+              </button>
+            </div>
+            <pre className="text-[10px] font-mono text-cyan-200/90 overflow-x-auto max-h-48 p-3 rounded-xl bg-black/80 border border-white/5 whitespace-pre">
+              {SUPABASE_SCHEMA_SQL}
+            </pre>
+          </div>
+        )}
       </div>
 
       {/* Backup & Progress Sync */}
