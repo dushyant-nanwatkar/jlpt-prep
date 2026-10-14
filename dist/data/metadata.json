@@ -1,0 +1,15 @@
+{
+  "totalVocab": 3521,
+  "vocabByLevel": {
+    "N5": 718,
+    "N4": 663,
+    "N3": 2140
+  },
+  "totalGrammar": 831,
+  "grammarByLevel": {
+    "N5": 80,
+    "N4": 131,
+    "N3": 182
+  },
+  "builtAt": "2026-10-14T18:10:52.429Z"
+}
