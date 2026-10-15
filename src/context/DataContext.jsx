@@ -77,9 +77,27 @@ export function DataProvider({ children }) {
           relatedWords: v.relatedWords || []
         }));
 
+        const normalizedGrammars = (Array.isArray(grammars) ? grammars : []).map((g, idx) => ({
+          ...g,
+          uniqueId: `${g.level || 'JLPT'}_${g.id || idx}`,
+          pattern: g.grammar || g.pattern || '',
+          grammar: g.grammar || g.pattern || '',
+          reading: g.reading || '',
+          meaning: g.meaning || '',
+          notes: g.notes || '',
+          usage: g.usage || g.notes || '',
+          examples: (g.examples || []).map(ex => ({
+            ...ex,
+            japanese: ex.japanese || ex.sentence || '',
+            sentence: ex.japanese || ex.sentence || '',
+            english: ex.english || ex.translation || '',
+            translation: ex.english || ex.translation || ''
+          }))
+        }));
+
         setMetadata(metaData);
         setVocabList(normalizedVocabs);
-        setGrammarList(grammars);
+        setGrammarList(normalizedGrammars);
         setLoading(false);
       } catch (err) {
         console.error('Data loading error:', err);
