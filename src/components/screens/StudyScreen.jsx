@@ -492,13 +492,12 @@ export default function StudyScreen({ onNavigate }) {
 
             {/* ── CARD MAIN BODY: FRONT VS HORIZONTAL 2-COLUMN BACK ── */}
             {!flipped ? (
-              /* FRONT: PURE MASSIVE KANJI (MASSIVE HUGE FONT, ZERO FURIGANA) */
+              /* FRONT: CLEAN REGULAR KANJI */
               <div className="flex-1 flex flex-col items-center justify-center text-center w-full my-auto">
                 <div
-                  className="jp font-black text-white leading-none tracking-tight mb-2 text-center drop-shadow-[0_12px_44px_rgba(158,202,254,0.35)]"
+                  className="jp font-normal text-white leading-normal tracking-normal mb-2 text-center"
                   style={{
-                    fontSize: kanjiFace.length > 4 ? '5.5rem' : kanjiFace.length > 2 ? '7.5rem' : '10.5rem',
-                    letterSpacing: '-0.02em'
+                    fontSize: kanjiFace.length > 4 ? '5rem' : kanjiFace.length > 2 ? '7rem' : '9rem'
                   }}
                 >
                   {kanjiFace}
@@ -510,8 +509,8 @@ export default function StudyScreen({ onNavigate }) {
                 {/* Left Column (5 of 12 cols): Kanji, Reading, Meaning */}
                 <div className="lg:col-span-5 flex flex-col items-center justify-center text-center p-3 lg:border-r border-white/10 h-full">
                   <div
-                    className="jp font-black text-white leading-none tracking-tight mb-2 text-center drop-shadow-[0_4px_24px_rgba(158,202,254,0.25)]"
-                    style={{ fontSize: kanjiFace.length > 3 ? '4rem' : '5.5rem' }}
+                    className="jp font-normal text-white leading-normal tracking-normal mb-2 text-center"
+                    style={{ fontSize: kanjiFace.length > 3 ? '3.5rem' : '4.5rem' }}
                   >
                     {kanjiFace}
                   </div>

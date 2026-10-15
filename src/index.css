@@ -383,7 +383,7 @@
   }
 
   /* ─── JP TEXT ─── */
-  .jp { font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif; }
+  .jp { font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif; }
   .mono { font-family: 'JetBrains Mono', monospace; }
 
   /* ─── CARD SHINE EFFECT ─── */
