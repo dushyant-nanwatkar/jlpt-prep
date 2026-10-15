@@ -62,6 +62,7 @@ export function getAppSettings() {
     speechRate: 1.0,
     autoPlayAudio: false,
     dailyNewLimit: 20,
+    studyLevel: 'All',
     showRomaji: true,
     showSubKanji: true,
     amoledTrueBlack: true

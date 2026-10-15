@@ -170,6 +170,24 @@ export default function SettingsScreen() {
             <option value={50}>50 words</option>
           </select>
         </div>
+
+        {/* Study Level Pool */}
+        <div className="flex items-center justify-between text-xs py-1">
+          <div>
+            <div className="font-semibold text-white">JLPT Learning Pool Level</div>
+            <div className="text-[11px] text-gray-400">Filter cards in the flashcard review deck</div>
+          </div>
+          <select
+            value={settings.studyLevel || 'All'}
+            onChange={(e) => updateSettings({ studyLevel: e.target.value })}
+            className="bg-[#0E131F] border border-[rgba(255,255,255,0.1)] text-white text-xs rounded-xl px-3 py-1.5 outline-none"
+          >
+            <option value="All">All Levels (N5, N4, N3)</option>
+            <option value="N5">N5 Only (Beginner)</option>
+            <option value="N4">N4 Only (Elementary)</option>
+            <option value="N3">N3 Only (Intermediate)</option>
+          </select>
+        </div>
       </div>
 
       {/* Supabase 24x7 Cloud Sync Card */}

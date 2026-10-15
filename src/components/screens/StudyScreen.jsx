@@ -79,18 +79,44 @@ const RATING_CONFIG = [
   { key: 'EASY',  id: 'easy',  label: 'Easy',  kanji: '易',    className: 'anki-easy',  sub: '~4 days' },
 ];
 
-function EmptyState({ onNavigate }) {
+function EmptyState({ onNavigate, selectedLevel, onSelectLevel }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-8 text-center h-[calc(100vh-120px)]">
       <div className="w-20 h-20 rounded-3xl mb-6 flex items-center justify-center"
         style={{ background: 'rgba(117,240,186,0.1)', border: '1px solid rgba(117,240,186,0.25)', boxShadow: '0 0 40px rgba(117,240,186,0.15)' }}>
         <Trophy size={32} style={{ color: '#75F0BA' }} />
       </div>
-      <h3 className="text-xl font-black text-white mb-2 text-center">All caught up！</h3>
-      <p className="text-sm text-white/50 max-w-xs leading-relaxed text-center">
-        No SRS cards are due for review. Your future self is grateful for the consistency.
+      <h3 className="text-xl font-black text-white mb-2 text-center">
+        {selectedLevel !== 'All' ? `All caught up in ${selectedLevel}！` : 'All caught up！'}
+      </h3>
+      <p className="text-sm text-white/50 max-w-xs leading-relaxed text-center mb-5">
+        No SRS cards are due for review in this pool. Select another level or browse vocabulary.
       </p>
-      <div className="flex gap-3 mt-6 justify-center">
+
+      {/* Level selector pills in empty state */}
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white/[0.05] border border-white/10 mb-6">
+        {['All', 'N5', 'N4', 'N3'].map(lvl => (
+          <button
+            key={lvl}
+            onClick={() => onSelectLevel(lvl)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              selectedLevel === lvl
+                ? lvl === 'N5'
+                  ? 'bg-[#52D68A] text-black shadow-[0_0_12px_rgba(82,214,138,0.35)]'
+                  : lvl === 'N4'
+                  ? 'bg-[#64B5F6] text-black shadow-[0_0_12px_rgba(100,181,246,0.35)]'
+                  : lvl === 'N3'
+                  ? 'bg-[#CE93D8] text-black shadow-[0_0_12px_rgba(206,147,216,0.35)]'
+                  : 'bg-primary text-black shadow-[0_0_12px_rgba(158,202,254,0.35)]'
+                : 'text-white/60 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            {lvl}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-3 justify-center">
         <button onClick={() => onNavigate('vocabulary')} className="btn btn-tonal px-5 py-2.5 text-sm">
           <BookOpen size={15} /> Browse Vocab
         </button>
@@ -102,7 +128,7 @@ function EmptyState({ onNavigate }) {
   );
 }
 
-function FinishScreen({ stats, deck, onRestart, onNavigate }) {
+function FinishScreen({ stats, deck, selectedLevel, onRestart, onSelectLevel, onNavigate }) {
   const accuracy = stats.reviewed > 0 ? Math.round((stats.correct / stats.reviewed) * 100) : 0;
   return (
     <div className="flex flex-col items-center justify-center h-[calc(100vh-120px)] px-6 text-center">
@@ -110,10 +136,12 @@ function FinishScreen({ stats, deck, onRestart, onNavigate }) {
         style={{ background: 'rgba(117,240,186,0.12)', border: '1px solid rgba(117,240,186,0.3)', boxShadow: '0 0 50px rgba(117,240,186,0.2)' }}>
         <Trophy size={40} style={{ color: '#75F0BA' }} />
       </div>
-      <h2 className="text-2xl font-black text-white mb-2 text-center">Session Complete！</h2>
+      <h2 className="text-2xl font-black text-white mb-2 text-center">
+        Session Complete {selectedLevel !== 'All' ? `(${selectedLevel})` : ''}！
+      </h2>
       <p className="text-white/50 text-sm mb-6 text-center">お疲れ様でした — Great work keeping up your streak.</p>
 
-      <div className="flex gap-4 mb-8 justify-center">
+      <div className="flex gap-4 mb-6 justify-center">
         <div className="text-center">
           <div className="text-3xl font-black text-white text-center">{stats.reviewed}</div>
           <div className="text-[11px] text-white/40 text-center">Reviewed</div>
@@ -128,6 +156,29 @@ function FinishScreen({ stats, deck, onRestart, onNavigate }) {
           <div className="text-3xl font-black text-center" style={{ color: '#9ECAFE' }}>{stats.correct}</div>
           <div className="text-[11px] text-white/40 text-center">Correct</div>
         </div>
+      </div>
+
+      {/* Switch level directly on finish screen */}
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white/[0.05] border border-white/10 mb-6">
+        {['All', 'N5', 'N4', 'N3'].map(lvl => (
+          <button
+            key={lvl}
+            onClick={() => onSelectLevel(lvl)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              selectedLevel === lvl
+                ? lvl === 'N5'
+                  ? 'bg-[#52D68A] text-black shadow-[0_0_12px_rgba(82,214,138,0.35)]'
+                  : lvl === 'N4'
+                  ? 'bg-[#64B5F6] text-black shadow-[0_0_12px_rgba(100,181,246,0.35)]'
+                  : lvl === 'N3'
+                  ? 'bg-[#CE93D8] text-black shadow-[0_0_12px_rgba(206,147,216,0.35)]'
+                  : 'bg-primary text-black shadow-[0_0_12px_rgba(158,202,254,0.35)]'
+                : 'text-white/60 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            {lvl}
+          </button>
+        ))}
       </div>
 
       <div className="flex gap-3 flex-wrap justify-center">
@@ -145,8 +196,16 @@ function FinishScreen({ stats, deck, onRestart, onNavigate }) {
 export default function StudyScreen({ onNavigate }) {
   const {
     vocabList, vocabSrsMap, answerVocabCard,
-    toggleVocabBookmark, settings,
+    toggleVocabBookmark, settings, updateSettings,
   } = useData();
+
+  const [selectedLevel, setSelectedLevel] = useState(() => {
+    try {
+      return localStorage.getItem('nihongo_study_level') || settings?.studyLevel || 'All';
+    } catch {
+      return 'All';
+    }
+  });
 
   const [deck, setDeck] = useState([]);
   const [cardIndex, setCardIndex] = useState(0);
@@ -159,13 +218,38 @@ export default function StudyScreen({ onNavigate }) {
   const [showKeymapModal, setShowKeymapModal] = useState(false);
   const [listeningAction, setListeningAction] = useState(null);
 
-  // Build deck on mount
+  // Level selection handler
+  const handleLevelChange = useCallback((lvl) => {
+    setSelectedLevel(lvl);
+    try {
+      localStorage.setItem('nihongo_study_level', lvl);
+      if (updateSettings) {
+        updateSettings({ studyLevel: lvl });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [updateSettings]);
+
+  // Build deck on mount or when level / settings change
   useEffect(() => {
     if (vocabList.length) {
-      const d = buildStudyDeck({ items: vocabList, srsMap: vocabSrsMap, ordering: 'srs', maxNew: 20 });
+      const pool = selectedLevel === 'All'
+        ? vocabList
+        : vocabList.filter(item => item.level === selectedLevel);
+      const d = buildStudyDeck({
+        items: pool,
+        srsMap: vocabSrsMap,
+        ordering: 'srs',
+        maxNew: settings?.dailyNewLimit || 20
+      });
       setDeck(d);
+      setCardIndex(0);
+      setFlipped(false);
+      setSessionStats({ reviewed: 0, correct: 0 });
+      setFinished(false);
     }
-  }, [vocabList, vocabSrsMap]);
+  }, [vocabList, selectedLevel, settings?.dailyNewLimit]);
 
   const card = deck[cardIndex];
   const progressPct = deck.length > 0 ? Math.round((cardIndex / deck.length) * 100) : 0;
@@ -174,12 +258,6 @@ export default function StudyScreen({ onNavigate }) {
   const kanjiFace = card?.japanese || card?.word || '';
   const furiganaReading = card?.reading || '';
 
-  // Automatically play audio on the main flash card screen before reveal
-  useEffect(() => {
-    if (card) {
-      speakJapanese(card.japanese || card.word, settings?.speechRate || 1.0);
-    }
-  }, [cardIndex, card?.id]);
 
   // Immediate flip without animation delays + immediate audio
   const handleFlip = useCallback(() => {
@@ -223,10 +301,10 @@ export default function StudyScreen({ onNavigate }) {
         return;
       }
 
-      // Replay Audio (R)
+      // Replay Audio (R) - only after reveal
       if (e.key.toLowerCase() === 'r') {
         e.preventDefault();
-        if (card) {
+        if (card && flipped) {
           speakJapanese(card.japanese || card.word, settings?.speechRate || 1.0);
         }
         return;
@@ -262,7 +340,15 @@ export default function StudyScreen({ onNavigate }) {
   }, [flipped, keymap, listeningAction, handleFlip, rateCard]);
 
   const restart = () => {
-    const d = buildStudyDeck({ items: vocabList, srsMap: vocabSrsMap, ordering: 'srs', maxNew: 20 });
+    const pool = selectedLevel === 'All'
+      ? vocabList
+      : vocabList.filter(item => item.level === selectedLevel);
+    const d = buildStudyDeck({
+      items: pool,
+      srsMap: vocabSrsMap,
+      ordering: 'srs',
+      maxNew: settings?.dailyNewLimit || 20
+    });
     setDeck(d);
     setCardIndex(0);
     setFlipped(false);
@@ -270,8 +356,8 @@ export default function StudyScreen({ onNavigate }) {
     setFinished(false);
   };
 
-  if (!deck.length) return <EmptyState onNavigate={onNavigate} />;
-  if (finished) return <FinishScreen stats={sessionStats} deck={deck} onRestart={restart} onNavigate={onNavigate} />;
+  if (!deck.length) return <EmptyState onNavigate={onNavigate} selectedLevel={selectedLevel} onSelectLevel={handleLevelChange} />;
+  if (finished) return <FinishScreen stats={sessionStats} deck={deck} selectedLevel={selectedLevel} onRestart={restart} onSelectLevel={handleLevelChange} onNavigate={onNavigate} />;
   if (!card) return null;
 
   const srsInfo = vocabSrsMap[String(card.id)];
@@ -293,14 +379,45 @@ export default function StudyScreen({ onNavigate }) {
 
         {/* ── TOP CONTROL BAR ── */}
         <div className="flex-shrink-0 pt-1">
-          <div className="flex items-center justify-between mb-2">
-            <button onClick={() => onNavigate('home')} className="icon-btn text-white/40 hover:text-white -ml-2">
-              <ArrowLeft size={19} />
-            </button>
+          <div className="flex items-center justify-between mb-2 gap-2 flex-wrap sm:flex-nowrap">
+            <div className="flex items-center gap-2">
+              <button onClick={() => onNavigate('home')} className="icon-btn text-white/40 hover:text-white -ml-2" title="Back to Dashboard">
+                <ArrowLeft size={19} />
+              </button>
+
+              {/* JLPT Level Filter Selector */}
+              <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/[0.05] border border-white/10 shadow-inner">
+                {['All', 'N5', 'N4', 'N3'].map((lvl) => {
+                  const isActive = selectedLevel === lvl;
+                  return (
+                    <button
+                      key={lvl}
+                      onClick={() => handleLevelChange(lvl)}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
+                        isActive
+                          ? lvl === 'N5'
+                            ? 'bg-[#52D68A] text-black shadow-[0_0_12px_rgba(82,214,138,0.35)]'
+                            : lvl === 'N4'
+                            ? 'bg-[#64B5F6] text-black shadow-[0_0_12px_rgba(100,181,246,0.35)]'
+                            : lvl === 'N3'
+                            ? 'bg-[#CE93D8] text-black shadow-[0_0_12px_rgba(206,147,216,0.35)]'
+                            : 'bg-primary text-black shadow-[0_0_12px_rgba(158,202,254,0.35)]'
+                          : 'text-white/50 hover:text-white hover:bg-white/10'
+                      }`}
+                      title={`Study ${lvl === 'All' ? 'all levels' : `${lvl} vocabulary only`}`}
+                    >
+                      {lvl}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="flex items-center gap-3">
               <span className="section-label">{cardIndex + 1} / {deck.length}</span>
               <span className={srsBadgeClass}>{srsBadgeLabel}</span>
             </div>
+
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setShowKeymapModal(true)}
@@ -357,16 +474,20 @@ export default function StudyScreen({ onNavigate }) {
                 )}
               </div>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  speakJapanese(kanjiFace, settings?.speechRate || 1.0);
-                }}
-                className="icon-btn text-primary hover:bg-primary/10 w-8 h-8 rounded-full"
-                title="Play Japanese pronunciation"
-              >
-                <Volume2 size={18} />
-              </button>
+              {flipped ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    speakJapanese(kanjiFace, settings?.speechRate || 1.0);
+                  }}
+                  className="icon-btn text-primary hover:bg-primary/10 w-8 h-8 rounded-full"
+                  title="Play Japanese pronunciation"
+                >
+                  <Volume2 size={18} />
+                </button>
+              ) : (
+                <div className="w-8 h-8" aria-hidden="true" />
+              )}
             </div>
 
             {/* ── CARD MAIN BODY: FRONT VS HORIZONTAL 2-COLUMN BACK ── */}
